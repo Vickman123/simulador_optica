@@ -201,7 +201,23 @@ Una vez iniciado el servidor:
 
 ---
 
-## 📁 10. Estructura del Repositorio
+## 🌐 10. Despliegue Público en GitHub Pages
+
+VOL cuenta con un flujo automatizado de Integración Continua (CI/CD) mediante **GitHub Actions** (`.github/workflows/deploy.yml`).
+
+### Enlace de Acceso Público:
+👉 **[https://vickman123.github.io/simulador_optica/](https://vickman123.github.io/simulador_optica/)**
+
+### ¿Cómo activar GitHub Pages en tu repositorio?
+1. Ingresa a tu repositorio en GitHub: [https://github.com/Vickman123/simulador_optica](https://github.com/Vickman123/simulador_optica)
+2. Haz clic en la pestaña **Settings** (Configuración) en la barra superior.
+3. En la barra lateral izquierda, selecciona **Pages** (dentro de la sección *Code and automation*).
+4. En **Build and deployment** > **Source**, despliega el selector y elige **GitHub Actions**.
+5. ¡Listo! El flujo se ejecutará de forma automática en cada cambio que subas a la rama `main` y mantendrá tu simulador siempre actualizado y visible en la web para cualquier persona o visor VR.
+
+---
+
+## 📁 11. Estructura del Repositorio
 
 ```
 simulador_optica/
