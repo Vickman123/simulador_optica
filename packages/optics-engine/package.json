@@ -1,0 +1,16 @@
+{
+  "name": "@vickora/optics-engine",
+  "version": "1.0.0",
+  "description": "Pure scientific computational optics engine by Vickora Labs.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@vickora/shared": "*",
+    "@vickora/vol-data": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

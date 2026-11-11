@@ -1,0 +1,64 @@
+{
+  "project": "VOL — Virtual Optics Laboratory",
+  "version": "1.0.0",
+  "vendor": "Vickora Labs",
+  "generatedAt": "2026-11-11",
+  "assets": [
+    {
+      "id": "geo-optical-table",
+      "name": "Optical Research Table",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "geo-optical-rail",
+      "name": "Precision Metric Rail",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "geo-laser-source",
+      "name": "Tunable Monochromatic Laser",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "geo-lens-mount",
+      "name": "Mounted Optical Lens Cell",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "geo-semicyl-block",
+      "name": "Semi-Cylindrical Glass Block",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "geo-obs-screen",
+      "name": "Calibrated Observation Screen",
+      "type": "procedural-mesh",
+      "license": "Proprietary / CC0",
+      "author": "Vickora Labs Pipeline"
+    },
+    {
+      "id": "mat-refractiveindex",
+      "name": "RefractiveIndex.INFO Database",
+      "type": "dataset",
+      "license": "CC0 1.0 Universal",
+      "author": "Mikhail Polyanskiy"
+    },
+    {
+      "id": "mat-schott-2023",
+      "name": "SCHOTT Optical Glass Catalog",
+      "type": "dataset",
+      "license": "Public Technical Specification",
+      "author": "SCHOTT AG"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@vickora/vol-learning",
+  "version": "1.0.0",
+  "description": "University-level laboratory practices, guided challenges, and assessments for VOL.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@vickora/shared": "*",
+    "@vickora/optics-engine": "*",
+    "@vickora/vol-data": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

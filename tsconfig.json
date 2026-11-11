@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vickora/optics-engine": ["packages/optics-engine/src/index.ts"],
+      "@vickora/vol-data": ["packages/vol-data/src/index.ts"],
+      "@vickora/vol-learning": ["packages/vol-learning/src/index.ts"],
+      "@vickora/vol-xr": ["packages/vol-xr/src/index.ts"],
+      "@vickora/shared": ["packages/shared/src/index.ts"],
+      "@vxr/core": ["packages/vxr-core/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src", "apps/*/src"],
+  "exclude": ["node_modules", "dist"]
+}
