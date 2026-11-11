@@ -31,7 +31,7 @@ export interface UniversityLabPractice {
   // 1. Title
   title: string;
   // 2. Academic level
-  academicLevel: 'Undergraduate Physics I' | 'Undergraduate Physics II' | 'Advanced Optical Engineering';
+  academicLevel: string;
   // 3. Learning objectives
   learningObjectives: string[];
   // 4. Scientific theory

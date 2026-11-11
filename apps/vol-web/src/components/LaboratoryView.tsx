@@ -10,11 +10,9 @@ import {
 import { ExperimentRecord } from '@vickora/shared';
 import { ScientificChart } from './ScientificChart.js';
 import { ReportModal } from './ReportModal.js';
-import { Language, TRANSLATIONS } from '../i18n.js';
 import {
   Glasses,
   CheckCircle,
-  Compass,
   Sliders,
   FileSpreadsheet,
   RotateCcw,
@@ -25,27 +23,24 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
-  Globe,
+  Sparkles,
+  Lightbulb,
+  Plus,
+  Minus,
 } from 'lucide-react';
 
 interface LaboratoryViewProps {
   onBackToLanding: () => void;
-  onRequestDemo: () => void;
-  lang?: Language;
+  onRequestDemo?: () => void;
+  lang?: string;
   onToggleLang?: () => void;
 }
 
-export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
-  onBackToLanding,
-  lang = 'es',
-  onToggleLang,
-}) => {
+export const LaboratoryView: React.FC<LaboratoryViewProps> = ({ onBackToLanding }) => {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<VolXrAdapter | null>(null);
 
-  const t = TRANSLATIONS[lang];
-
-  // Collapsible panels state (allows user to hide/show panels to never saturate window)
+  // Paneles desplegables / ocultables para no saturar la pantalla
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
 
@@ -53,7 +48,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
   const [labMode, setLabMode] = useState<LabMode>('guided');
   const [activePractice, setActivePractice] = useState<UniversityLabPractice>(getPractice('exp-snell'));
 
-  // Experiment parameters
+  // Parámetros experimentales
   const [params, setParams] = useState<Record<string, any>>({
     incidentAngleDeg: 30,
     wavelengthNm: 632.8,
@@ -72,7 +67,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [isVRSupported, setIsVRSupported] = useState<boolean>(false);
 
-  // Initialize 3D simulation once on mount
+  // Inicialización de la simulación 3D
   useEffect(() => {
     if (!canvasContainerRef.current) return;
 
@@ -80,7 +75,6 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
     adapter.start();
     adapterRef.current = adapter;
 
-    // Check VR capability for WebXR / Meta Quest 3S
     adapter.app.session.checkVRSupport().then((supported) => {
       setIsVRSupported(supported);
     });
@@ -91,7 +85,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
     };
   }, []);
 
-  // Update 3D scene when station or params change
+  // Cambio de estación activa
   useEffect(() => {
     if (!adapterRef.current) return;
     adapterRef.current.navigateToStation(activeStationId);
@@ -112,12 +106,11 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
     }
   }, [activeStationId]);
 
-  // Sync params to 3D ray tracing engine
+  // Sincronización de parámetros con el motor físico
   useEffect(() => {
     if (!adapterRef.current) return;
     adapterRef.current.setExperimentState(params);
 
-    // Check challenge completion if active
     if (labMode === 'challenge' && activePractice.challenges.length > 0) {
       const chal = activePractice.challenges[0];
       let currentVal = 0;
@@ -156,6 +149,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
     setParams((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Botón para registrar datos en el cuaderno
   const handleRecordMeasurement = () => {
     const newItems: ExperimentRecord['measurements'] = [];
 
@@ -166,7 +160,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
       const fresnel = calculateFresnel(thetaRad, 1.0, n2);
 
       newItems.push({
-        name: lang === 'es' ? 'Ángulo de Incidencia' : 'Incident Angle',
+        name: 'Ángulo de Incidencia',
         symbol: 'θ_i',
         value: params.incidentAngleDeg,
         unit: '°',
@@ -174,7 +168,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
         errorPercentage: 0.0,
       });
       newItems.push({
-        name: lang === 'es' ? 'Ángulo Refractado' : 'Refracted Angle',
+        name: 'Ángulo Refractado en Vidrio',
         symbol: 'θ_t',
         value: fresnel.thetaTransmittedRad ? (fresnel.thetaTransmittedRad * 180.0) / Math.PI : 90,
         unit: '°',
@@ -182,11 +176,11 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
         errorPercentage: 0.0,
       });
       newItems.push({
-        name: lang === 'es' ? 'Reflectancia (no polarizada)' : 'Reflectance (unpolarized)',
+        name: 'Luz Reflejada (Rebote)',
         symbol: 'R',
-        value: fresnel.Runpolarized,
-        unit: 'ratio',
-        theoreticalValue: fresnel.Runpolarized,
+        value: fresnel.Runpolarized * 100,
+        unit: '%',
+        theoreticalValue: fresnel.Runpolarized * 100,
         errorPercentage: 0.0,
       });
     } else if (activeStationId === 'lenses') {
@@ -196,7 +190,7 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
       const res = calculateThinLens(fM, doM, hoM);
 
       newItems.push({
-        name: lang === 'es' ? 'Distancia Imagen' : 'Image Distance',
+        name: 'Distancia de la Imagen',
         symbol: 'd_i',
         value: res.imageDistanceM * 1000.0,
         unit: 'mm',
@@ -204,10 +198,10 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
         errorPercentage: 0.0,
       });
       newItems.push({
-        name: lang === 'es' ? 'Magnificación Transversal' : 'Transverse Magnification',
+        name: 'Aumento (Magnificación)',
         symbol: 'm',
         value: res.magnification,
-        unit: '',
+        unit: 'veces',
         theoreticalValue: res.magnification,
         errorPercentage: 0.0,
       });
@@ -220,19 +214,11 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
       });
 
       newItems.push({
-        name: lang === 'es' ? 'Espaciado de Franjas' : 'Fringe Spacing',
+        name: 'Espaciado entre Franjas de Luz',
         symbol: 'Δy',
         value: res.fringeSpacingM * 1000.0,
         unit: 'mm',
         theoreticalValue: res.fringeSpacingM * 1000.0,
-        errorPercentage: 0.0,
-      });
-      newItems.push({
-        name: lang === 'es' ? 'Espaciado Angular' : 'Angular Spacing',
-        symbol: 'Δθ',
-        value: res.angularFringeSpacingRad * 1000.0,
-        unit: 'mrad',
-        theoreticalValue: res.angularFringeSpacingRad * 1000.0,
         errorPercentage: 0.0,
       });
     }
@@ -243,12 +229,61 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
   const handleEnterVR = () => {
     if (adapterRef.current) {
       adapterRef.current.app.session.enterVR().catch((err) => {
-        alert('WebXR error: ' + err.message);
+        alert('WebXR no pudo iniciar: ' + err.message);
       });
     }
   };
 
-  // Compile active experiment record for report
+  // Cálculo en vivo para la caja didáctica
+  const getDidacticExplanation = () => {
+    if (activeStationId === 'geometric') {
+      const mat = getMaterial(params.materialId ?? 'nbk7');
+      const n2 = getRefractiveIndex(mat, params.wavelengthNm ?? 632.8);
+      const thetaRad = ((params.incidentAngleDeg ?? 30) * Math.PI) / 180.0;
+      const fresnel = calculateFresnel(thetaRad, 1.0, n2);
+      const thetaTDeg = fresnel.thetaTransmittedRad ? ((fresnel.thetaTransmittedRad * 180) / Math.PI).toFixed(1) : '90';
+      const rPct = (fresnel.Runpolarized * 100).toFixed(1);
+      const tPct = (fresnel.Tunpolarized * 100).toFixed(1);
+
+      if (params.incidentAngleDeg === 0) {
+        return '🎯 El rayo entra completamente perpendicular (0°). Al no chocar en diagonal, pasa recto sin desviarse.';
+      }
+      if (Math.abs(params.incidentAngleDeg - 56.6) <= 1.5 && params.materialId === 'nbk7') {
+        return '✨ ¡Estás en el Ángulo de Brewster (56.6°)! Fíjate cómo el reflejo paralelo (curva dorada) se anula por completo. Así funcionan los lentes de sol polarizados para eliminar los charcos de luz en el pavimento.';
+      }
+      return `💡 El haz incide a ${params.incidentAngleDeg}°. Como el ${mat.name} es más denso que el aire, frena la luz y la desvía hacia adentro a ${thetaTDeg}°. El ${rPct}% rebota hacia atrás y el ${tPct}% entra al vidrio.`;
+    }
+
+    if (activeStationId === 'lenses') {
+      const fM = (params.focalLengthMm ?? 100) / 1000.0;
+      const doM = (params.objectDistanceMm ?? 250) / 1000.0;
+      const res = calculateThinLens(fM, doM, (params.objectHeightMm ?? 20) / 1000.0);
+      const diMm = (res.imageDistanceM * 1000).toFixed(0);
+      const mag = Math.abs(res.magnification).toFixed(2);
+
+      if (params.focalLengthMm < 0) {
+        return `👓 Lente divergente (foco negativo). Los rayos se dispersan hacia afuera. Siempre verás una imagen pequeña y derecha a través del cristal.`;
+      }
+      if (params.objectDistanceMm < params.focalLengthMm) {
+        return `🔍 ¡Efecto Lupa activo! El objeto está muy cerca (${params.objectDistanceMm} mm, dentro del foco de ${params.focalLengthMm} mm). La imagen no se puede proyectar en una pared; es una imagen virtual que se ve ${mag} veces más grande mirando a través de la lente.`;
+      }
+      return `📽️ Modo Proyector: La lente concentra los rayos para formar una imagen real e invertida (de cabeza) a ${diMm} mm de distancia, con un tamaño ${mag} veces el original.`;
+    }
+
+    if (activeStationId === 'wave') {
+      const res = calculateDoubleSlit({
+        wavelengthNm: params.wavelengthNm ?? 532,
+        slitSeparationM: (params.slitSeparationMm ?? 0.25) / 1000.0,
+        slitWidthM: (params.slitWidthMm ?? 0.04) / 1000.0,
+        screenDistanceM: params.screenDistanceM ?? 1.2,
+      });
+      const dyMm = (res.fringeSpacingM * 1000).toFixed(2);
+      return `🌊 ¡La luz se comporta como una ola en el agua! Al salir de las 2 rendijas, las ondas se suman creando franjas de luz brillantes cada ${dyMm} mm en la pantalla, separadas por líneas de oscuridad absoluta.`;
+    }
+
+    return 'Estación en desarrollo para la versión 1.1.';
+  };
+
   const activeRecord: ExperimentRecord = {
     id: `rec_${Date.now()}`,
     experimentId: activePractice.id,
@@ -259,8 +294,8 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
     initialConditions: params,
     measurements: recordedMeasurements.length > 0 ? recordedMeasurements : [
       {
-        name: lang === 'es' ? 'Parámetro de Referencia' : 'Reference Parameter',
-        symbol: 'Ref_0',
+        name: 'Punto de Calibración',
+        symbol: 'Cal_0',
         value: 1.0,
         unit: 'a.u.',
         theoreticalValue: 1.0,
@@ -274,42 +309,42 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
 
   return (
     <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#0a0d14] text-slate-100 select-none">
-      {/* Top Application Bar */}
-      <header className="h-14 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md px-3 md:px-5 flex items-center justify-between z-20 shrink-0">
+      {/* Barra Superior de Navegación */}
+      <header className="h-14 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 md:px-5 flex items-center justify-between z-20 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToLanding}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition border border-slate-800"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> {t.exitLab}
+            <ArrowLeft className="w-3.5 h-3.5" /> Salir al Inicio
           </button>
           <div className="h-4 w-px bg-slate-800"></div>
           <div className="flex items-center gap-2">
-            <Atom className="w-5 h-5 text-sky-400 animate-pulse" />
-            <span className="font-bold tracking-tight text-white text-sm">VOL</span>
-            <span className="text-[10px] font-mono text-sky-400 bg-sky-950/80 border border-sky-800/80 px-1.5 py-0.2 rounded hidden sm:inline">
-              Vickora Labs
+            <Atom className="w-5 h-5 text-sky-400" />
+            <span className="font-extrabold tracking-tight text-white text-sm">VOL</span>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+              Laboratorio 3D
             </span>
           </div>
         </div>
 
-        {/* Station Navigation Tabs */}
-        <div className="hidden lg:flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-0.5 rounded-lg">
+        {/* Pestañas de las Estaciones */}
+        <div className="hidden lg:flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
           {[
-            { id: 'geometric', label: t.stations.geometric },
-            { id: 'lenses', label: t.stations.lenses },
-            { id: 'wave', label: t.stations.wave },
-            { id: 'polarization', label: t.stations.polarization },
-            { id: 'laser', label: t.stations.laser },
-            { id: 'photonics', label: t.stations.photonics },
+            { id: 'geometric', label: 'A. Óptica Geométrica' },
+            { id: 'lenses', label: 'B. Sistemas de Lentes' },
+            { id: 'wave', label: 'C. Doble Rendija de Young' },
+            { id: 'polarization', label: 'D. Polarización (Pronto)' },
+            { id: 'laser', label: 'E. Láser (Pronto)' },
+            { id: 'photonics', label: 'F. Fibra Óptica (Pronto)' },
           ].map((st) => (
             <button
               key={st.id}
               onClick={() => setActiveStationId(st.id)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${
+              className={`px-3 py-1 text-xs rounded-lg font-bold transition ${
                 activeStationId === st.id
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-sky-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
               {st.label}
@@ -317,9 +352,9 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
           ))}
         </div>
 
-        {/* Right Actions, Mode, Language, & VR */}
+        {/* Acciones Rápidas */}
         <div className="flex items-center gap-2">
-          {/* Quick Toggle 3D Full View */}
+          {/* Botón de Vista Completa 3D */}
           <button
             onClick={() => {
               if (isLeftPanelOpen || isRightPanelOpen) {
@@ -330,196 +365,188 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                 setIsRightPanelOpen(true);
               }
             }}
-            className={`p-1.5 rounded-lg border text-xs flex items-center gap-1 transition ${
+            className={`p-1.5 rounded-lg border text-xs flex items-center gap-1.5 transition font-semibold ${
               !isLeftPanelOpen && !isRightPanelOpen
                 ? 'bg-sky-600 border-sky-400 text-white shadow-md'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
-            title={!isLeftPanelOpen && !isRightPanelOpen ? t.restorePanels : t.viewFull3D}
+            title={!isLeftPanelOpen && !isRightPanelOpen ? 'Restaurar Paneles' : 'Ocultar Paneles y Ver 3D Completo'}
           >
             <Maximize2 className="w-3.5 h-3.5" />
             <span className="hidden xl:inline text-[11px]">
-              {!isLeftPanelOpen && !isRightPanelOpen ? t.restorePanels : t.viewFull3D}
+              {!isLeftPanelOpen && !isRightPanelOpen ? 'Restaurar Paneles' : 'Vista 3D Completa'}
             </span>
           </button>
 
-          {/* Mode Selector */}
+          {/* Selector de Modo de Aprendizaje */}
           <div className="flex items-center gap-0.5 bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs">
             <button
               onClick={() => setLabMode('guided')}
-              className={`px-2 py-0.5 rounded font-medium transition ${
-                labMode === 'guided' ? 'bg-slate-800 text-sky-400' : 'text-slate-400 hover:text-slate-200'
+              className={`px-2.5 py-1 rounded-md font-bold transition ${
+                labMode === 'guided' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              {t.guidedMode}
+              Paso a Paso
             </button>
             <button
               onClick={() => setLabMode('free')}
-              className={`px-2 py-0.5 rounded font-medium transition ${
-                labMode === 'free' ? 'bg-slate-800 text-sky-400' : 'text-slate-400 hover:text-slate-200'
+              className={`px-2.5 py-1 rounded-md font-bold transition ${
+                labMode === 'free' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              {t.freeMode}
+              Libre
             </button>
             <button
               onClick={() => setLabMode('challenge')}
-              className={`px-2 py-0.5 rounded font-medium transition ${
-                labMode === 'challenge' ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:text-slate-200'
+              className={`px-2.5 py-1 rounded-md font-bold transition ${
+                labMode === 'challenge' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              {t.challengeMode}
+              Reto
             </button>
           </div>
 
-          {/* Language Switcher */}
-          {onToggleLang && (
-            <button
-              onClick={onToggleLang}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg transition"
-              title="Cambiar idioma / Switch language"
-            >
-              <Globe className="w-3.5 h-3.5 text-sky-400" />
-              <span className="uppercase font-mono">{lang}</span>
-            </button>
-          )}
-
-          {/* WebXR VR Mode Button */}
+          {/* Botón VR Meta Quest */}
           <button
             onClick={handleEnterVR}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg border transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
               isVRSupported
-                ? 'bg-gradient-to-r from-sky-600 to-indigo-600 border-sky-400 text-white shadow-lg shadow-sky-950/50 hover:brightness-110'
-                : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-r from-sky-600 to-indigo-600 border-sky-400 text-white shadow-lg hover:brightness-110'
+                : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
-            title={isVRSupported ? t.enterVR : t.webxrReady}
+            title={isVRSupported ? 'Entrar a Realidad Virtual en Meta Quest 3S' : 'Compatible con Meta Quest Browser'}
           >
             <Glasses className="w-4 h-4" />
-            <span className="hidden sm:inline">{isVRSupported ? t.enterVR : t.webxrReady}</span>
+            <span className="hidden sm:inline">{isVRSupported ? 'Entrar a VR (Quest 3S)' : 'WebXR Listo'}</span>
           </button>
 
-          {/* Notebook & Report Modal Trigger */}
+          {/* Reporte Oficial */}
           <button
             onClick={() => setShowReportModal(true)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-emerald-700/80 hover:bg-emerald-600 text-white rounded-lg border border-emerald-500/30 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg border border-emerald-500/40 transition shadow-sm"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>{t.report} ({recordedMeasurements.length})</span>
+            <span>Reporte ({recordedMeasurements.length})</span>
           </button>
         </div>
       </header>
 
-      {/* Main 3D Canvas + Overlay Layout */}
+      {/* Área Central: 3D + Paneles Desplegables */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
-        {/* Full-screen 3D Viewport rendered by Three.js & VXR Core */}
+        {/* Lienzo 3D de Three.js y VXR Core */}
         <div
           ref={canvasContainerRef}
           className="absolute inset-0 w-full h-full bg-[#0a0d14]"
           style={{ width: '100%', height: '100%', display: 'block' }}
         />
 
-        {/* 3D Navigation Help Overlay */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-950/80 backdrop-blur-md border border-slate-800/80 px-4 py-1.5 rounded-full text-[11px] text-slate-300 pointer-events-none flex items-center gap-3 z-10 shadow-lg">
-          <span className="flex items-center gap-1 font-mono text-sky-400">
-            <Compass className="w-3.5 h-3.5" /> {t.navigationHelpDesktop}
-          </span>
-          <span className="text-slate-600 hidden md:inline">|</span>
-          <span className="text-slate-400 hidden md:inline">{t.navigationHelpQuest}</span>
+        {/* Tarjeta Didáctica Flotante: ¿Qué está pasando con la luz? */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 max-w-xl w-[90%] bg-slate-950/90 backdrop-blur-md border border-sky-500/30 rounded-2xl p-3 shadow-2xl flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 shrink-0 mt-0.5">
+            <Lightbulb className="w-4 h-4" />
+          </div>
+          <div className="flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">
+              Explicación Didáctica en Tiempo Real
+            </span>
+            <p className="text-xs text-slate-200 leading-relaxed font-medium">
+              {getDidacticExplanation()}
+            </p>
+          </div>
         </div>
 
-        {/* Floating Collapsed Pill for Left Panel (When closed) */}
+        {/* Botón flotante para abrir el panel izquierdo cuando está cerrado */}
         {!isLeftPanelOpen && (
           <button
             onClick={() => setIsLeftPanelOpen(true)}
-            className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-2 bg-slate-950/90 hover:bg-slate-900 border border-slate-800 text-sky-400 hover:text-sky-300 rounded-xl shadow-xl transition backdrop-blur-md text-xs font-semibold"
-            title={t.showPractice}
+            className="absolute top-20 left-4 z-20 flex items-center gap-2 px-3.5 py-2.5 bg-slate-950/95 hover:bg-slate-900 border border-slate-700 text-sky-400 rounded-xl shadow-2xl transition backdrop-blur-md text-xs font-bold"
           >
             <BookOpen className="w-4 h-4" />
-            <span>{t.showPractice}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <span>Guía de Práctica</span>
+            <ChevronRight className="w-4 h-4" />
           </button>
         )}
 
-        {/* Floating Collapsed Pill for Right Panel (When closed) */}
+        {/* Botón flotante para abrir el panel derecho cuando está cerrado */}
         {!isRightPanelOpen && (
           <button
             onClick={() => setIsRightPanelOpen(true)}
-            className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 bg-slate-950/90 hover:bg-slate-900 border border-slate-800 text-sky-400 hover:text-sky-300 rounded-xl shadow-xl transition backdrop-blur-md text-xs font-semibold"
-            title={t.showWorkspace}
+            className="absolute top-20 right-4 z-20 flex items-center gap-2 px-3.5 py-2.5 bg-slate-950/95 hover:bg-slate-900 border border-slate-700 text-sky-400 rounded-xl shadow-2xl transition backdrop-blur-md text-xs font-bold"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4" />
             <Sliders className="w-4 h-4" />
-            <span>{t.showWorkspace}</span>
+            <span>Controles de Instrumentos</span>
           </button>
         )}
 
-        {/* Left Sidebar: Learning & Guided Steps Panel (Collapsible) */}
+        {/* Panel Izquierdo: Guía de Aprendizaje (Plegable) */}
         {isLeftPanelOpen && (
-          <div className="absolute top-4 left-4 w-72 md:w-88 max-h-[calc(100vh-80px)] bg-slate-950/95 backdrop-blur-md border border-slate-800/90 rounded-xl flex flex-col shadow-2xl z-20 overflow-hidden transition-all duration-200">
-            <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/70">
+          <div className="absolute top-4 left-4 w-80 md:w-92 max-h-[calc(100vh-80px)] bg-slate-950/95 backdrop-blur-md border border-slate-800 rounded-2xl flex flex-col shadow-2xl z-20 overflow-hidden transition-all duration-200">
+            <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-sky-400" />
                 <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  {labMode === 'guided' && t.guidedMode}
-                  {labMode === 'free' && t.freeMode}
-                  {labMode === 'challenge' && t.challengeMode}
+                  {labMode === 'guided' && 'Paso a Paso'}
+                  {labMode === 'free' && 'Laboratorio Libre'}
+                  {labMode === 'challenge' && 'Reto Científico'}
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-sky-400 bg-sky-950/80 border border-sky-800/60 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold text-sky-400 bg-sky-950 border border-sky-800/80 px-2 py-0.5 rounded-full">
                   {activePractice.academicLevel}
                 </span>
                 <button
                   onClick={() => setIsLeftPanelOpen(false)}
-                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition"
-                  title={t.hidePanel}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  title="Ocultar panel"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="p-3.5 overflow-y-auto space-y-3.5 text-xs">
-              {/* Practice Title */}
+            <div className="p-4 overflow-y-auto space-y-4 text-xs">
+              {/* Título de la práctica */}
               <div>
-                <h3 className="text-sm font-bold text-slate-100 leading-snug">{activePractice.title}</h3>
-                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                <h3 className="text-sm font-bold text-white leading-snug">{activePractice.title}</h3>
+                <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
                   {activePractice.setupDescription}
                 </p>
               </div>
 
-              {/* Challenge Mode Active */}
+              {/* Modo Reto */}
               {labMode === 'challenge' && activePractice.challenges.length > 0 && (
-                <div className="bg-amber-950/40 border border-amber-800/60 rounded-lg p-3 space-y-2">
+                <div className="bg-amber-950/50 border border-amber-800/80 rounded-xl p-3.5 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-amber-300 font-bold">
                       <Trophy className="w-4 h-4" /> {activePractice.challenges[0].title}
                     </div>
                     {challengeCompleted ? (
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> {t.solved}
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-800 flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" /> ¡Resuelto!
                       </span>
                     ) : (
-                      <span className="text-[10px] text-amber-400 font-mono">{t.inProgress}</span>
+                      <span className="text-[10px] text-amber-400 font-mono">En progreso</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  <p className="text-[11px] text-amber-100 leading-relaxed font-medium">
                     {activePractice.challenges[0].description}
                   </p>
                   {challengeCompleted && (
-                    <p className="text-[11px] text-emerald-300 bg-emerald-950/60 p-2 rounded border border-emerald-900 leading-relaxed">
+                    <p className="text-[11px] text-emerald-200 bg-emerald-950/80 p-2.5 rounded-lg border border-emerald-800 leading-relaxed">
                       {activePractice.challenges[0].solutionExplanation}
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Guided Lab Steps */}
+              {/* Pasos Guiados */}
               {labMode === 'guided' && activePractice.procedure.length > 0 && (
                 <div className="space-y-2">
-                  <span className="font-semibold text-slate-300 uppercase tracking-wider text-[10px] block">
-                    {t.procedureCheckpoints}
+                  <span className="font-bold text-slate-200 uppercase tracking-wider text-[10px] block">
+                    Pasos de la Práctica (Haz clic para marcar)
                   </span>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {activePractice.procedure.map((step) => (
                       <div
                         key={step.stepNumber}
@@ -529,23 +556,23 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                             [step.stepNumber]: !prev[step.stepNumber],
                           }))
                         }
-                        className={`p-2 rounded-lg border cursor-pointer transition flex items-start gap-2 ${
+                        className={`p-3 rounded-xl border cursor-pointer transition flex items-start gap-2.5 ${
                           completedSteps[step.stepNumber]
-                            ? 'bg-slate-900/60 border-emerald-600/40 text-slate-300'
-                            : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 text-slate-200'
+                            ? 'bg-emerald-950/30 border-emerald-600/50 text-slate-200'
+                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={!!completedSteps[step.stepNumber]}
                           onChange={() => {}}
-                          className="mt-0.5 rounded text-sky-500 focus:ring-0"
+                          className="mt-0.5 rounded text-sky-500 focus:ring-0 cursor-pointer"
                         />
                         <div className="flex-1">
-                          <span className="font-semibold text-slate-100 block text-[11px]">
-                            {t.step} {step.stepNumber}: {step.title}
+                          <span className="font-bold text-white block text-xs">
+                            Paso {step.stepNumber}: {step.title}
                           </span>
-                          <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
+                          <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
                             {step.instruction}
                           </p>
                         </div>
@@ -555,24 +582,22 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                 </div>
               )}
 
-              {/* Theory & Mathematical Models Accordion */}
-              <div className="border-t border-slate-800 pt-3 space-y-1.5">
-                <span className="font-semibold text-slate-300 uppercase tracking-wider text-[10px] block">
-                  {t.mathematicalModels}
+              {/* Explicación Teórica Fácil */}
+              <div className="border-t border-slate-800/80 pt-3 space-y-1.5">
+                <span className="font-bold text-sky-400 uppercase tracking-wider text-[10px] block">
+                  ¿Por qué ocurre esto? (Fundamento Teórico)
                 </span>
-                <div className="bg-slate-950 p-2 rounded border border-slate-800/80 font-mono text-[10px] text-sky-300 space-y-0.5">
-                  {activePractice.mathematicalModel.map((eq, i) => (
-                    <div key={i}>{eq}</div>
-                  ))}
-                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed bg-slate-900/50 p-2.5 rounded-xl border border-slate-800">
+                  {activePractice.theory}
+                </p>
               </div>
 
-              {/* Safety Protocols */}
-              <div className="border-t border-slate-800 pt-3">
-                <span className="font-semibold text-amber-400 uppercase tracking-wider text-[10px] block mb-1">
-                  {t.safetyProtocols}
+              {/* Protocolos de Seguridad */}
+              <div className="border-t border-slate-800/80 pt-3">
+                <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px] block mb-1">
+                  Reglas de Seguridad en el Laboratorio
                 </span>
-                <ul className="list-disc list-inside text-[10px] text-slate-400 space-y-0.5">
+                <ul className="list-disc list-inside text-[11px] text-slate-400 space-y-1">
                   {activePractice.safety.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}
@@ -582,14 +607,14 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
           </div>
         )}
 
-        {/* Right Sidebar: Scientific Workspace & Instrument Controls (Collapsible) */}
+        {/* Panel Derecho: Espacio de Instrumentos y Controles (Plegable) */}
         {isRightPanelOpen && (
-          <div className="absolute top-4 right-4 w-72 md:w-88 max-h-[calc(100vh-80px)] bg-slate-950/95 backdrop-blur-md border border-slate-800/90 rounded-xl flex flex-col shadow-2xl z-20 overflow-hidden transition-all duration-200">
-            <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/70">
+          <div className="absolute top-4 right-4 w-80 md:w-92 max-h-[calc(100vh-80px)] bg-slate-950/95 backdrop-blur-md border border-slate-800 rounded-2xl flex flex-col shadow-2xl z-20 overflow-hidden transition-all duration-200">
+            <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
               <div className="flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-sky-400" />
                 <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  {t.instrumentWorkspace}
+                  Controles del Experimento
                 </h2>
               </div>
               <div className="flex items-center gap-2">
@@ -607,78 +632,190 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                       screenDistanceM: 1.2,
                     })
                   }
-                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition"
-                  title={t.resetParams}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  title="Restablecer valores originales"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setIsRightPanelOpen(false)}
-                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition"
-                  title={t.hidePanel}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  title="Ocultar panel"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="p-3.5 overflow-y-auto space-y-3.5 text-xs">
-              {/* Station Specific Controls */}
+            <div className="p-4 overflow-y-auto space-y-4 text-xs">
+              {/* Presets Rápidos de 1 Clic para cualquier usuario */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-slate-300 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-sky-400" /> Atajos Rápidos de 1 Clic
+                </span>
+                {activeStationId === 'geometric' && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => handleParamChange('incidentAngleDeg', 0)}
+                      className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition text-left"
+                    >
+                      🎯 Recto (0°)
+                    </button>
+                    <button
+                      onClick={() => handleParamChange('incidentAngleDeg', 30)}
+                      className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition text-left"
+                    >
+                      📐 Refracción (30°)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleParamChange('incidentAngleDeg', 56.6);
+                        handleParamChange('materialId', 'nbk7');
+                      }}
+                      className="px-2 py-1.5 bg-sky-950/80 hover:bg-sky-900 border border-sky-700/80 rounded-lg text-[11px] font-bold text-sky-300 transition text-left col-span-2"
+                    >
+                      ✨ Ángulo de Brewster (Sin reflejo P)
+                    </button>
+                  </div>
+                )}
+
+                {activeStationId === 'lenses' && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => {
+                        handleParamChange('focalLengthMm', 100);
+                        handleParamChange('objectDistanceMm', 60);
+                      }}
+                      className="px-2 py-1.5 bg-sky-950/80 hover:bg-sky-900 border border-sky-700/80 rounded-lg text-[11px] font-bold text-sky-300 transition text-left"
+                    >
+                      🔍 Efecto Lupa (2x)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleParamChange('focalLengthMm', 100);
+                        handleParamChange('objectDistanceMm', 200);
+                      }}
+                      className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition text-left"
+                    >
+                      ⚖️ Simétrico (2f)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleParamChange('focalLengthMm', 100);
+                        handleParamChange('objectDistanceMm', 150);
+                      }}
+                      className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition text-left"
+                    >
+                      📽️ Proyector (2X Real)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleParamChange('focalLengthMm', -100);
+                        handleParamChange('objectDistanceMm', 250);
+                      }}
+                      className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-slate-200 transition text-left"
+                    >
+                      👓 Lente Cóncava
+                    </button>
+                  </div>
+                )}
+
+                {activeStationId === 'wave' && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => {
+                        handleParamChange('wavelengthNm', 532);
+                        handleParamChange('slitSeparationMm', 0.25);
+                      }}
+                      className="px-2 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 rounded-lg text-[11px] font-bold text-emerald-300 transition text-left"
+                    >
+                      🟢 Láser Verde (532 nm)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleParamChange('wavelengthNm', 632.8);
+                        handleParamChange('slitSeparationMm', 0.25);
+                      }}
+                      className="px-2 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-700/80 rounded-lg text-[11px] font-bold text-red-300 transition text-left"
+                    >
+                      🔴 Láser Rojo (633 nm)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Controles de la Estación A (Óptica Geométrica) */}
               {activeStationId === 'geometric' && (
-                <div className="space-y-3">
+                <div className="space-y-3.5 border-t border-slate-800/80 pt-3">
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.incidentAngle}</span>
-                      <span className="font-mono text-sky-400 font-semibold">{params.incidentAngleDeg}°</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-200 font-bold">Inclinación del Láser (Ángulo)</span>
+                      <span className="font-mono text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/80">
+                        {params.incidentAngleDeg}°
+                      </span>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={85}
-                      step={0.5}
-                      value={params.incidentAngleDeg}
-                      onChange={(e) => handleParamChange('incidentAngleDeg', parseFloat(e.target.value))}
-                      className="w-full accent-sky-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleParamChange('incidentAngleDeg', Math.max(0, params.incidentAngleDeg - 5))}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300"
+                        title="Restar 5 grados"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={85}
+                        step={0.5}
+                        value={params.incidentAngleDeg}
+                        onChange={(e) => handleParamChange('incidentAngleDeg', parseFloat(e.target.value))}
+                        className="flex-1 accent-sky-500 bg-slate-800 h-2 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <button
+                        onClick={() => handleParamChange('incidentAngleDeg', Math.min(85, params.incidentAngleDeg + 5))}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300"
+                        title="Sumar 5 grados"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.laserWavelength}</span>
-                      <span className="font-mono text-emerald-400 font-semibold">{params.wavelengthNm} nm</span>
-                    </div>
+                    <label className="block text-slate-200 font-bold mb-1.5">Color del Láser</label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[
-                        { nm: 405, label: '405' },
-                        { nm: 488, label: '488' },
-                        { nm: 532, label: '532' },
-                        { nm: 632.8, label: '633' },
+                        { nm: 405, label: 'Violeta', bg: 'bg-purple-600' },
+                        { nm: 488, label: 'Cian', bg: 'bg-cyan-500' },
+                        { nm: 532, label: 'Verde', bg: 'bg-emerald-500' },
+                        { nm: 632.8, label: 'Rojo', bg: 'bg-red-500' },
                       ].map((w) => (
                         <button
                           key={w.nm}
                           onClick={() => handleParamChange('wavelengthNm', w.nm)}
-                          className={`py-1 text-[10px] rounded border font-mono transition ${
+                          className={`py-1.5 text-[11px] rounded-lg border font-bold transition flex items-center justify-center gap-1 ${
                             params.wavelengthNm === w.nm
-                              ? 'bg-sky-600 border-sky-400 text-white font-bold'
-                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                              ? 'bg-sky-600 border-white text-white shadow-md'
+                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
                           }`}
                         >
-                          {w.nm}
+                          <span className={`w-2 h-2 rounded-full ${w.bg}`}></span>
+                          {w.label}
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">{t.opticalGlassMaterial}</label>
+                    <label className="block text-slate-200 font-bold mb-1">Tipo de Vidrio</label>
                     <select
                       value={params.materialId}
                       onChange={(e) => handleParamChange('materialId', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-sky-500 font-mono text-xs"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-sky-500 font-medium text-xs cursor-pointer"
                     >
                       {listMaterials().map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.name} (n_d = {m.nd.toFixed(4)})
+                          {m.name} (Índice n = {m.nd.toFixed(3)})
                         </option>
                       ))}
                     </select>
@@ -686,12 +823,15 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                 </div>
               )}
 
+              {/* Controles de la Estación B (Lentes) */}
               {activeStationId === 'lenses' && (
-                <div className="space-y-3">
+                <div className="space-y-3.5 border-t border-slate-800/80 pt-3">
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.focalLength}</span>
-                      <span className="font-mono text-sky-400 font-semibold">{params.focalLengthMm} mm</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-200 font-bold">Curvatura / Foco de la Lente</span>
+                      <span className="font-mono text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/80">
+                        {params.focalLengthMm} mm
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -700,66 +840,59 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                       step={10}
                       value={params.focalLengthMm}
                       onChange={(e) => handleParamChange('focalLengthMm', parseFloat(e.target.value))}
-                      className="w-full accent-sky-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-sky-500 bg-slate-800 h-2 rounded-lg appearance-none cursor-pointer"
                     />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                      <span>Cóncava (Divergente)</span>
+                      <span>Convexa (Convergente)</span>
+                    </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.objectDistance}</span>
-                      <span className="font-mono text-emerald-400 font-semibold">{params.objectDistanceMm} mm</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-200 font-bold">Distancia del Objeto</span>
+                      <span className="font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80">
+                        {params.objectDistanceMm} mm
+                      </span>
                     </div>
-                    <input
-                      type="range"
-                      min={30}
-                      max={500}
-                      step={5}
-                      value={params.objectDistanceMm}
-                      onChange={(e) => handleParamChange('objectDistanceMm', parseFloat(e.target.value))}
-                      className="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.objectHeight}</span>
-                      <span className="font-mono text-amber-400 font-semibold">{params.objectHeightMm} mm</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleParamChange('objectDistanceMm', Math.max(30, params.objectDistanceMm - 10))}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300"
+                        title="Acercar 10 mm"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="range"
+                        min={30}
+                        max={500}
+                        step={5}
+                        value={params.objectDistanceMm}
+                        onChange={(e) => handleParamChange('objectDistanceMm', parseFloat(e.target.value))}
+                        className="flex-1 accent-emerald-500 bg-slate-800 h-2 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <button
+                        onClick={() => handleParamChange('objectDistanceMm', Math.min(500, params.objectDistanceMm + 10))}
+                        className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300"
+                        title="Alejar 10 mm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <input
-                      type="range"
-                      min={5}
-                      max={40}
-                      step={1}
-                      value={params.objectHeightMm}
-                      onChange={(e) => handleParamChange('objectHeightMm', parseFloat(e.target.value))}
-                      className="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
-                    />
                   </div>
                 </div>
               )}
 
+              {/* Controles de la Estación C (Doble Rendija) */}
               {activeStationId === 'wave' && (
-                <div className="space-y-3">
+                <div className="space-y-3.5 border-t border-slate-800/80 pt-3">
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.laserWavelength}</span>
-                      <span className="font-mono text-emerald-400 font-semibold">{params.wavelengthNm} nm</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={400}
-                      max={700}
-                      step={5}
-                      value={params.wavelengthNm}
-                      onChange={(e) => handleParamChange('wavelengthNm', parseFloat(e.target.value))}
-                      className="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.slitSeparation}</span>
-                      <span className="font-mono text-sky-400 font-semibold">{params.slitSeparationMm} mm</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-200 font-bold">Separación entre Rendijas (d)</span>
+                      <span className="font-mono text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/80">
+                        {params.slitSeparationMm} mm
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -768,14 +901,16 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                       step={0.02}
                       value={params.slitSeparationMm}
                       onChange={(e) => handleParamChange('slitSeparationMm', parseFloat(e.target.value))}
-                      className="w-full accent-sky-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-sky-500 bg-slate-800 h-2 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
 
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-slate-300 font-medium">{t.screenDistance}</span>
-                      <span className="font-mono text-indigo-400 font-semibold">{params.screenDistanceM} m</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-200 font-bold">Distancia a la Pantalla (L)</span>
+                      <span className="font-mono text-indigo-400 font-bold bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/80">
+                        {params.screenDistanceM} m
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -784,34 +919,26 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
                       step={0.1}
                       value={params.screenDistanceM}
                       onChange={(e) => handleParamChange('screenDistanceM', parseFloat(e.target.value))}
-                      className="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-indigo-500 bg-slate-800 h-2 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
                 </div>
               )}
 
-              {/* Roadmap Station Notice */}
-              {['polarization', 'laser', 'photonics'].includes(activeStationId) && (
-                <div className="bg-sky-950/30 border border-sky-800/50 p-3 rounded-lg text-slate-300">
-                  <span className="font-bold text-sky-400 block mb-1">{t.roadmapNoticeTitle}</span>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    {t.roadmapNoticeDesc}
-                  </p>
+              {/* Gráfica Científica Analítica */}
+              {['geometric', 'lenses', 'wave'].includes(activeStationId) && (
+                <div className="border-t border-slate-800/80 pt-2">
+                  <ScientificChart stationId={activeStationId} params={params} />
                 </div>
               )}
 
-              {/* Real-time Scientific Curve / Chart */}
-              {['geometric', 'lenses', 'wave'].includes(activeStationId) && (
-                <ScientificChart stationId={activeStationId} params={params} />
-              )}
-
-              {/* Record Measurement Action */}
-              <div className="border-t border-slate-800 pt-2.5">
+              {/* Botón para Registrar Medición */}
+              <div className="border-t border-slate-800/80 pt-2.5">
                 <button
                   onClick={handleRecordMeasurement}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold rounded-lg flex items-center justify-center gap-2 transition border border-slate-700"
+                  className="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-sky-950/60 text-xs"
                 >
-                  <FileSpreadsheet className="w-4 h-4" /> {t.recordData}
+                  <FileSpreadsheet className="w-4 h-4" /> Registrar Medición en Cuaderno
                 </button>
               </div>
             </div>
@@ -819,11 +946,12 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({
         )}
       </div>
 
-      {/* Official Printable Report Modal */}
+      {/* Modal de Reporte Imprimible */}
       {showReportModal && (
         <ReportModal
           record={activeRecord}
           onClose={() => setShowReportModal(false)}
+          lang="es"
         />
       )}
     </div>
