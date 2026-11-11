@@ -2,15 +2,22 @@ import React, { useState } from 'react';
 import { ExperimentRecord } from '@vickora/shared';
 import { exportExperimentAsCSV, exportExperimentAsJSON, saveExperimentRecord } from '../services/persistence.js';
 import { Download, Printer, X, CheckCircle, FileText } from 'lucide-react';
+import { Language, TRANSLATIONS } from '../i18n.js';
 
 interface ReportModalProps {
   record: ExperimentRecord;
   onClose: () => void;
+  lang?: Language;
 }
 
-export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord, onClose }) => {
+export const ReportModal: React.FC<ReportModalProps> = ({
+  record: initialRecord,
+  onClose,
+  lang = 'es',
+}) => {
   const [record, setRecord] = useState<ExperimentRecord>(initialRecord);
   const [savedNotification, setSavedNotification] = useState(false);
+  const t = TRANSLATIONS[lang].reportModal;
 
   const handleNotesChange = (text: string) => {
     const updated = { ...record, studentNotes: text };
@@ -36,14 +43,14 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-sky-400" />
             <div>
-              <h2 className="text-base font-bold text-slate-100">Official Laboratory Experiment Report</h2>
-              <p className="text-xs text-slate-400">Vickora Labs — Virtual Optics Laboratory (VOL)</p>
+              <h2 className="text-base font-bold text-slate-100">{t.title}</h2>
+              <p className="text-xs text-slate-400">{t.sub}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {savedNotification && (
               <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                <CheckCircle className="w-3.5 h-3.5" /> Saved
+                <CheckCircle className="w-3.5 h-3.5" /> {t.saved}
               </span>
             )}
             <button
@@ -65,7 +72,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded transition shadow-sm"
               title="Print or Save PDF"
             >
-              <Printer className="w-3.5 h-3.5" /> Print / PDF
+              <Printer className="w-3.5 h-3.5" /> {t.print}
             </button>
             <button
               onClick={onClose}
@@ -89,13 +96,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
                   {record.title}
                 </h1>
                 <p className="text-sm text-slate-400 print:text-gray-600 mt-0.5">
-                  Virtual Optics Laboratory (VOL) — Experimental Station: {record.stationId.toUpperCase()}
+                  Virtual Optics Laboratory (VOL) — {lang === 'es' ? 'Estación' : 'Station'}: {record.stationId.toUpperCase()}
                 </p>
               </div>
               <div className="text-right text-xs text-slate-400 print:text-gray-600 font-mono">
                 <div>Session ID: {record.id.slice(0, 10)}</div>
-                <div>Date: {new Date(record.timestamp).toLocaleDateString()}</div>
-                <div>Duration: {Math.round(record.durationSeconds)} s</div>
+                <div>{lang === 'es' ? 'Fecha' : 'Date'}: {new Date(record.timestamp).toLocaleDateString()}</div>
+                <div>{lang === 'es' ? 'Duración' : 'Duration'}: {Math.round(record.durationSeconds)} s</div>
               </div>
             </div>
           </div>
@@ -103,7 +110,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           {/* Section 1: Initial Conditions */}
           <div>
             <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2 print:text-black">
-              1. Experimental Apparatus & Configuration Parameters
+              {t.sec1}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800 print:bg-gray-100 print:border-gray-300">
               {Object.entries(record.parameters).map(([key, val]) => (
@@ -118,18 +125,18 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           {/* Section 2: Measurements Table */}
           <div>
             <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2 print:text-black">
-              2. Quantitative Experimental Measurements & Validation
+              {t.sec2}
             </h3>
             <div className="border border-slate-800 rounded-lg overflow-hidden print:border-gray-300">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 print:bg-gray-200 print:text-black">
                   <tr>
-                    <th className="p-2.5">Physical Quantity</th>
-                    <th className="p-2.5">Symbol</th>
-                    <th className="p-2.5">Experimental Value</th>
-                    <th className="p-2.5">Unit</th>
-                    <th className="p-2.5">Theoretical Reference</th>
-                    <th className="p-2.5">Relative Error (%)</th>
+                    <th className="p-2.5">{t.quantity}</th>
+                    <th className="p-2.5">{t.symbol}</th>
+                    <th className="p-2.5">{t.expVal}</th>
+                    <th className="p-2.5">{t.unit}</th>
+                    <th className="p-2.5">{t.theoVal}</th>
+                    <th className="p-2.5">{t.relError}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 print:divide-gray-200">
@@ -164,7 +171,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           {record.theoreticalSummary && (
             <div>
               <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2 print:text-black">
-                3. Mathematical & Physical Principles
+                {t.sec3}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded border border-slate-800 print:bg-white print:border-gray-200 print:text-black">
                 {record.theoreticalSummary}
@@ -175,12 +182,12 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           {/* Section 4: Student Analysis & Notes */}
           <div>
             <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2 print:text-black">
-              4. Experimental Discussion & Scientific Conclusions
+              {t.sec4}
             </h3>
             <textarea
               value={record.studentNotes ?? ''}
               onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="Enter student observations, experimental source of errors, analysis of Fresnel/Snell equations, and concluding remarks..."
+              placeholder={t.notesPlaceholder}
               rows={4}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 no-print"
             />
@@ -194,11 +201,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
           <div className="pt-6 border-t border-slate-800 grid grid-cols-2 gap-8 text-xs text-slate-400 print:text-gray-700">
             <div>
               <div className="border-b border-slate-700 print:border-black mb-1 w-48 h-8"></div>
-              <span>Student / Researcher Signature</span>
+              <span>{t.studentSign}</span>
             </div>
             <div>
               <div className="border-b border-slate-700 print:border-black mb-1 w-48 h-8"></div>
-              <span>Instructor / Academic Evaluator Verification</span>
+              <span>{t.instructorSign}</span>
             </div>
           </div>
         </div>
@@ -209,13 +216,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({ record: initialRecord,
             onClick={handleSave}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition"
           >
-            Save Record Locally
+            {t.saveLocal}
           </button>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition"
           >
-            Close
+            {t.close}
           </button>
         </div>
       </div>

@@ -82,11 +82,22 @@ export class XRRenderer {
     if (!this.nativeRenderer.domElement.parentElement) {
       this.container.appendChild(this.nativeRenderer.domElement);
     }
+    this.nativeRenderer.domElement.style.width = '100%';
+    this.nativeRenderer.domElement.style.height = '100%';
+    this.nativeRenderer.domElement.style.display = 'block';
+    this.nativeRenderer.domElement.style.position = 'absolute';
+    this.nativeRenderer.domElement.style.top = '0';
+    this.nativeRenderer.domElement.style.left = '0';
 
     // 4. Clock and resize listeners
     this.clock = new THREE.Clock();
     this.boundOnResize = this.handleResize.bind(this);
     window.addEventListener('resize', this.boundOnResize);
+
+    if (typeof ResizeObserver !== 'undefined' && this.container !== document.body) {
+      const ro = new ResizeObserver(() => this.updateSize());
+      ro.observe(this.container);
+    }
   }
 
   /**
@@ -99,10 +110,13 @@ export class XRRenderer {
   /**
    * Recalculates canvas size and camera aspect ratio from the container dimensions.
    */
-  private updateSize(): void {
-    const width = this.container === document.body ? window.innerWidth : this.container.clientWidth;
-    const height = this.container === document.body ? window.innerHeight : this.container.clientHeight;
-    this.nativeRenderer.setSize(width, height, false);
+  public updateSize(): void {
+    const rawW = this.container === document.body ? window.innerWidth : this.container.clientWidth;
+    const rawH = this.container === document.body ? window.innerHeight : this.container.clientHeight;
+    const width = rawW > 0 ? rawW : window.innerWidth;
+    const height = rawH > 0 ? rawH : window.innerHeight;
+
+    this.nativeRenderer.setSize(width, height, true);
     this.camera.aspect = width / (height || 1);
     this.camera.updateProjectionMatrix();
   }
