@@ -8,6 +8,9 @@ export interface PracticeStep {
   stepNumber: number;
   title: string;
   instruction: string;
+  actionLabel?: string;
+  presetParams?: Record<string, any>;
+  feedbackText?: string;
   targetParameter?: string;
   expectedCondition?: string;
   hint?: string;

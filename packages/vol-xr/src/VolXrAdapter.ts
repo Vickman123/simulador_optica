@@ -16,6 +16,7 @@ import {
   Vector3,
 } from '@vickora/optics-engine';
 import { getMaterial, getRefractiveIndex } from '@vickora/vol-data';
+import { wavelengthToRGB } from '@vickora/shared';
 
 export interface StationDefinition {
   id: string;
@@ -35,16 +36,26 @@ export class VolXrAdapter {
   private dynamicRayGroup: THREE.Group;
   private currentExperimentState: Record<string, any> = {};
 
+  // Interactive station instrument references
+  private geometricLaser: THREE.Group | null = null;
+  private geometricBlock: THREE.Mesh | null = null;
+  private lensesTarget: THREE.Group | null = null;
+  private lensesOptic: THREE.Group | null = null;
+  private lensesScreen: THREE.Group | null = null;
+
   constructor(container?: HTMLElement) {
     // 1. Initialize VXR Core XRApp (autoVRButton: false to prevent DOM button overlap)
     this.app = new XRApp({
       container,
       autoVRButton: false,
       autoOrbitControls: true,
-      cameraPosition: [-4.2, 1.25, -1.3],
+      cameraPosition: [-4.2 + 0.55, 1.35, -2.5 + 0.85],
       targetFrameRate: 90,
       questOptimization: true,
     });
+
+    // Set deep laboratory background atmosphere
+    this.app.scene.setBackground(0x0a0e17);
 
     // 2. Setup dynamic ray container
     this.dynamicRayGroup = new THREE.Group();
@@ -68,21 +79,20 @@ export class VolXrAdapter {
 
   private setupLaboratoryRoom(): void {
     // Construct spacious university optics research laboratory
-    // Setting ceiling: enabled: false allows bright ambient & directional lights to illuminate the entire lab
     this.app.createRoom({
       id: 'optics-lab-main',
       name: 'Vickora Labs Optics Research Facility',
       dimensions: { width: 18, depth: 16, height: 4.2 },
       theme: 'scifi',
       floor: {
-        color: 0x0f172a, // Deep laboratory slate
-        roughness: 0.15,
-        metalness: 0.25,
+        color: 0x111827, // Clean dark laboratory slate
+        roughness: 0.2,
+        metalness: 0.3,
         grid: true,
       },
       walls: {
-        color: 0x1e293b, // Clean tech graphite walls
-        trimColor: 0x0ea5e9, // Vickora Cyan accents
+        color: 0x1f2937, // Professional research lab walls
+        trimColor: 0x0284c7, // Ocean Cyan accents
         roughness: 0.4,
       },
       ceiling: {
@@ -91,22 +101,22 @@ export class VolXrAdapter {
       lighting: {
         enabled: true,
         color: 0xffffff,
-        intensity: 2.5,
+        intensity: 2.8,
       },
-      spawnPoint: [-4.2, 1.25, -1.3],
+      spawnPoint: [-4.2 + 0.55, 1.35, -2.5 + 0.85],
     });
 
     // High-power interior illumination
-    const interiorAmbient = new THREE.AmbientLight(0xffffff, 2.2);
+    const interiorAmbient = new THREE.AmbientLight(0xffffff, 2.4);
     interiorAmbient.name = 'VOL_InteriorAmbient';
     this.app.scene.nativeScene.add(interiorAmbient);
 
-    const mainKeyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    const mainKeyLight = new THREE.DirectionalLight(0xffffff, 3.0);
     mainKeyLight.position.set(6, 8, 6);
     mainKeyLight.castShadow = true;
     this.app.scene.nativeScene.add(mainKeyLight);
 
-    const secondaryFill = new THREE.DirectionalLight(0x38bdf8, 1.5);
+    const secondaryFill = new THREE.DirectionalLight(0x38bdf8, 1.6);
     secondaryFill.position.set(-6, 8, -6);
     this.app.scene.nativeScene.add(secondaryFill);
   }
@@ -209,66 +219,100 @@ export class VolXrAdapter {
 
   private createStationSign(parent: THREE.Group, _cfg: StationDefinition): void {
     const signGroup = new THREE.Group();
-    signGroup.position.set(0, 1.05, -0.52);
+    // Mount firmly on the front edge of the optical table to keep line of sight unobstructed
+    signGroup.position.set(0, 0.78, 0.56);
 
-    const plateGeo = new THREE.BoxGeometry(0.6, 0.12, 0.01);
+    const plateGeo = new THREE.BoxGeometry(0.42, 0.065, 0.015);
     const plateMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7, // Vickora Ocean Blue
-      metalness: 0.6,
+      color: 0x0f172a, // Deep slate equipment badge
+      metalness: 0.85,
       roughness: 0.2,
     });
     const plate = new THREE.Mesh(plateGeo, plateMat);
     signGroup.add(plate);
 
+    const accentGeo = new THREE.BoxGeometry(0.4, 0.006, 0.018);
+    const accentMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const accent = new THREE.Mesh(accentGeo, accentMat);
+    accent.position.set(0, -0.02, 0.001);
+    signGroup.add(accent);
+
     parent.add(signGroup);
   }
 
   private setupGeometricHardware(table: THREE.Group): void {
-    // Laser source at -0.45m on rail
-    const laser = createLaserSource(632.8);
-    laser.name = 'GeometricLaser';
-    laser.position.set(0, 0.85, -0.45);
-    table.add(laser);
+    // 1. Goniometer round protractor base plate (radius 0.26m)
+    const baseGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.008, 64);
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.3,
+      metalness: 0.85,
+    });
+    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.set(0, 0.854, 0);
+    table.add(baseMesh);
 
-    // Goniometer circular protractor on table surface
-    const ringGeo = new THREE.RingGeometry(0.02, 0.16, 48);
+    // Goniometer circular angle indicator ring
+    const ringGeo = new THREE.RingGeometry(0.04, 0.24, 64);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.65,
       side: THREE.DoubleSide,
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.position.set(0, 0.852, 0);
+    ringMesh.position.set(0, 0.859, 0);
     table.add(ringMesh);
 
-    // Semi-cylindrical glass block at center (0, 0.85, 0)
-    const block = createSemiCylindricalBlock(0.08, 0.04);
+    // Center mounting stage for the prism (height 0.09m)
+    const stageGeo = new THREE.CylinderGeometry(0.082, 0.082, 0.09, 32);
+    const stageMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.35,
+      metalness: 0.8,
+    });
+    const stageMesh = new THREE.Mesh(stageGeo, stageMat);
+    stageMesh.position.set(0, 0.85 + 0.045, 0);
+    table.add(stageMesh);
+
+    // 2. Semi-cylindrical glass block centered at optical axis height (0, 0.97, 0)
+    const block = createSemiCylindricalBlock(0.08, 0.045);
     block.name = 'SemiCylindricalBlockMesh';
-    block.position.set(0, 0.87, 0);
+    block.position.set(0, 0.97, 0);
     table.add(block);
+    this.geometricBlock = block;
+
+    // 3. Precision laser source on goniometer arm
+    const laser = createLaserSource(632.8);
+    laser.name = 'GeometricLaser';
+    laser.position.set(0, 0.85, -0.42);
+    table.add(laser);
+    this.geometricLaser = laser;
   }
 
   private setupLensesHardware(table: THREE.Group): void {
     // Optical rail along Z
-    // Object target at Z = -0.45m
-    const objScreen = createObservationScreen(0.1, 0.1);
+    // Object target at Z = -0.35m
+    const objScreen = createObservationScreen(0.12, 0.12);
     objScreen.name = 'LensesObjectTarget';
-    objScreen.position.set(0, 0.85, -0.45);
+    objScreen.position.set(0, 0.85, -0.35);
     table.add(objScreen);
+    this.lensesTarget = objScreen;
 
-    // Mounted lens at Z = -0.15m
+    // Mounted lens at Z = 0.0m
     const lens = createMountedLens(0.1, 0.08);
     lens.name = 'LensesMountedOptic';
-    lens.position.set(0, 0.85, -0.15);
+    lens.position.set(0, 0.85, 0.0);
     table.add(lens);
+    this.lensesOptic = lens;
 
     // Image projection screen at Z = +0.25m
     const imgScreen = createObservationScreen(0.16, 0.16);
     imgScreen.name = 'LensesProjectionScreen';
     imgScreen.position.set(0, 0.85, 0.25);
     table.add(imgScreen);
+    this.lensesScreen = imgScreen;
   }
 
   private setupWaveHardware(table: THREE.Group): void {
@@ -300,9 +344,9 @@ export class VolXrAdapter {
     this.activeStationId = stationId;
 
     const [px, , pz] = station.position;
-    // Position camera 1.1m in front of table, 1.25m height, looking at center of bench (0.95m height)
-    const targetCamPos: [number, number, number] = [px, 1.25, pz + 1.1];
-    const targetLookAt: [number, number, number] = [px, 0.95, pz];
+    // Elevate camera for a comfortable 3/4 perspective overlooking the optical bench
+    const targetCamPos: [number, number, number] = [px + 0.55, 1.35, pz + 0.85];
+    const targetLookAt: [number, number, number] = [px, 0.97, pz];
 
     this.app.resetCamera(targetCamPos, targetLookAt);
   }
@@ -339,44 +383,61 @@ export class VolXrAdapter {
       const n2 = getRefractiveIndex(mat, wl);
       const n1 = 1.0; // Air
 
+      // Update physical index of refraction in 3D prism material
+      if (this.geometricBlock && (this.geometricBlock.material as THREE.MeshPhysicalMaterial)) {
+        (this.geometricBlock.material as THREE.MeshPhysicalMaterial).ior = Math.min(2.4, Math.max(1.0, n2));
+      }
+
       const thetaRad = (thetaDeg * Math.PI) / 180.0;
       const fresnel = calculateFresnel(thetaRad, n1, n2);
 
-      // Height of laser beam is at table surface (0.85m) + optical post (0.18m) = 1.03m
-      const centerY = tablePos.y + 0.85 + 0.02;
+      // Height of optical axis is at 0.97m above ground
+      const centerY = tablePos.y + 0.97;
       const center = new THREE.Vector3(tablePos.x, centerY, tablePos.z);
 
       const beamRadius = 0.0035; // 3.5mm visible laser core
-      const beamReach = 0.55;
+      const beamReach = 0.42;
 
       // Incident ray: coming from angle theta
-      const incStart = new THREE.Vector3(
-        center.x + Math.sin(thetaRad) * beamReach,
-        centerY,
-        center.z - Math.cos(thetaRad) * beamReach
-      );
+      const incStartX = tablePos.x + Math.sin(thetaRad) * beamReach;
+      const incStartZ = tablePos.z - Math.cos(thetaRad) * beamReach;
+      const incStart = new THREE.Vector3(incStartX, centerY, incStartZ);
+
+      // Reposition and orient the actual 3D laser source on the goniometer!
+      if (this.geometricLaser) {
+        this.geometricLaser.position.set(incStartX, tablePos.y + 0.85, incStartZ);
+        this.geometricLaser.lookAt(tablePos.x, centerY, tablePos.z);
+
+        // Update emission LED indicator color
+        const rgb = wavelengthToRGB(wl);
+        const led = this.geometricLaser.getObjectByName('LaserEmissionLED') as THREE.Mesh;
+        if (led && (led.material as THREE.MeshBasicMaterial).color) {
+          (led.material as THREE.MeshBasicMaterial).color.set(rgb.hex);
+        }
+      }
+
+      // 1. Draw incident ray from laser aperture to flat prism face
       this.dynamicRayGroup.add(createLaserRayMesh(incStart, center, wl, 1.0, beamRadius));
 
-      // Reflected ray: theta_r = theta_i
-      const reflEnd = new THREE.Vector3(
-        center.x - Math.sin(thetaRad) * beamReach,
-        centerY,
-        center.z - Math.cos(thetaRad) * beamReach
-      );
-      this.dynamicRayGroup.add(
-        createLaserRayMesh(center, reflEnd, wl, Math.max(0.18, fresnel.Runpolarized), beamRadius * 0.85)
-      );
+      // 2. Reflected ray: theta_r = theta_i into -Z region
+      const reflEndX = tablePos.x - Math.sin(thetaRad) * beamReach;
+      const reflEndZ = tablePos.z - Math.cos(thetaRad) * beamReach;
+      const reflEnd = new THREE.Vector3(reflEndX, centerY, reflEndZ);
+      const reflIntensity = fresnel.Runpolarized;
+      if (reflIntensity > 0.002) {
+        this.dynamicRayGroup.add(
+          createLaserRayMesh(center, reflEnd, wl, Math.min(1.0, reflIntensity * 2.5), beamRadius * 0.85)
+        );
+      }
 
-      // Refracted ray (if not Total Internal Reflection)
+      // 3. Refracted ray through glass into +Z region
       if (!fresnel.isTIR && fresnel.thetaTransmittedRad !== null) {
         const thetaT = fresnel.thetaTransmittedRad;
-        const refrEnd = new THREE.Vector3(
-          center.x - Math.sin(thetaT) * beamReach,
-          centerY,
-          center.z + Math.cos(thetaT) * beamReach
-        );
+        const refrEndX = tablePos.x - Math.sin(thetaT) * beamReach;
+        const refrEndZ = tablePos.z + Math.cos(thetaT) * beamReach;
+        const refrEnd = new THREE.Vector3(refrEndX, centerY, refrEndZ);
         this.dynamicRayGroup.add(
-          createLaserRayMesh(center, refrEnd, wl, Math.max(0.18, fresnel.Tunpolarized), beamRadius * 0.9)
+          createLaserRayMesh(center, refrEnd, wl, Math.min(1.0, fresnel.Tunpolarized * 1.2), beamRadius * 0.9)
         );
       }
     } else if (this.activeStationId === 'lenses') {
@@ -390,7 +451,18 @@ export class VolXrAdapter {
 
       const lensCalc = calculateThinLens(fM, doM, hoM, 0);
 
-      const tableCenter = new THREE.Vector3(tablePos.x, tablePos.y + 0.85 + 0.18, tablePos.z);
+      // Move object target, lens curvature, and observation screen on rail
+      if (this.lensesOptic) {
+        this.lensesOptic.scale.set(1, 1, fMm < 0 ? 0.75 : 1.15);
+      }
+      if (this.lensesTarget) {
+        this.lensesTarget.position.set(0, 0.85, -Math.min(0.6, doM));
+      }
+      if (this.lensesScreen && lensCalc.imageDistanceM > 0) {
+        this.lensesScreen.position.set(0, 0.85, Math.min(0.65, lensCalc.imageDistanceM));
+      }
+
+      const tableCenter = new THREE.Vector3(tablePos.x, tablePos.y + 0.97, tablePos.z);
       const wl = 532; // Green laser rays
 
       // Draw principal construction rays
@@ -430,15 +502,15 @@ export class VolXrAdapter {
         screenDistanceM: LM,
       });
 
-      const tableCenter = new THREE.Vector3(tablePos.x, tablePos.y + 0.85 + 0.18, tablePos.z);
+      const tableCenter = new THREE.Vector3(tablePos.x, tablePos.y + 0.97, tablePos.z);
 
       // Laser to slits
       const laserPoint = new THREE.Vector3(tableCenter.x, tableCenter.y, tableCenter.z - 0.55);
-      const slitPoint = new THREE.Vector3(tableCenter.x, tableCenter.y, tableCenter.z - 0.35);
+      const slitPoint = new THREE.Vector3(tableCenter.x, tableCenter.y, tableCenter.z - 0.25);
       this.dynamicRayGroup.add(createLaserRayMesh(laserPoint, slitPoint, wl, 1.0, 0.0035));
 
       // Dual coherent beams fanning out to screen
-      const screenZ = tableCenter.z - 0.35 + LM * 0.5;
+      const screenZ = tableCenter.z - 0.25 + LM * 0.45;
       [-waveCalc.fringeSpacingM * 3, 0, waveCalc.fringeSpacingM * 3].forEach((offsetY) => {
         const screenHit = new THREE.Vector3(
           tableCenter.x + offsetY * 12,

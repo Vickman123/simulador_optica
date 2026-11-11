@@ -259,19 +259,39 @@ export function createObservationScreen(
 }
 
 /**
- * Creates a semi-cylindrical optical block for Snell's Law and TIR experiments.
+ * Creates a precision semi-cylindrical optical prism block for Snell's Law and TIR experiments.
+ * The flat entrance/exit face is at z = 0 with normal pointing towards -Z.
  */
-export function createSemiCylindricalBlock(radiusM: number = 0.05, heightM: number = 0.03): THREE.Mesh {
-  // Semi-cylinder geometry (thetaLength = Math.PI)
-  const geo = new THREE.CylinderGeometry(radiusM, radiusM, heightM, 32, 1, false, 0, Math.PI);
+export function createSemiCylindricalBlock(radiusM: number = 0.08, heightM: number = 0.045): THREE.Mesh {
+  const shape = new THREE.Shape();
+  // Flat diameter along X from -radius to +radius
+  shape.moveTo(-radiusM, 0);
+  shape.lineTo(radiusM, 0);
+  // Semicircle arc in +Y
+  shape.absarc(0, 0, radiusM, 0, Math.PI, false);
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: heightM,
+    bevelEnabled: true,
+    bevelSegments: 2,
+    steps: 1,
+    bevelSize: 0.0015,
+    bevelThickness: 0.0015,
+  });
+
+  // Rotate and center so flat face normal points in -Z, arc in +Z, and vertical height is centered at y = 0
+  geo.rotateX(Math.PI / 2);
+  geo.translate(0, heightM / 2, 0);
+
   const mat = new THREE.MeshPhysicalMaterial({
-    color: 0xe0f2fe, // Subtle blue-tinted optical glass
+    color: 0xe0f2fe, // Optical crown glass tint
     transparent: true,
-    opacity: 0.6,
-    roughness: 0.08,
-    transmission: 0.92,
+    opacity: 0.7,
+    roughness: 0.04,
+    transmission: 0.95,
     ior: 1.5168,
-    reflectivity: 0.6,
+    reflectivity: 0.85,
+    metalness: 0.0,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'SemiCylindricalGlassBlock';

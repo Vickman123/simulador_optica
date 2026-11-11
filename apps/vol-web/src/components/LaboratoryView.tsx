@@ -13,6 +13,7 @@ import { ReportModal } from './ReportModal.js';
 import {
   Glasses,
   CheckCircle,
+  CheckCircle2,
   Sliders,
   FileSpreadsheet,
   RotateCcw,
@@ -27,6 +28,7 @@ import {
   Lightbulb,
   Plus,
   Minus,
+  Play,
 } from 'lucide-react';
 
 interface LaboratoryViewProps {
@@ -66,6 +68,18 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({ onBackToLanding 
   const [recordedMeasurements, setRecordedMeasurements] = useState<ExperimentRecord['measurements']>([]);
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [isVRSupported, setIsVRSupported] = useState<boolean>(false);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+
+  const handleExecuteStep = (step: any) => {
+    if (step.presetParams) {
+      setParams((prev) => ({ ...prev, ...step.presetParams }));
+    }
+    setCompletedSteps((prev) => ({ ...prev, [step.stepNumber]: true }));
+    if (step.feedbackText) {
+      setActionToast(step.feedbackText);
+      setTimeout(() => setActionToast(null), 5500);
+    }
+  };
 
   // Inicialización de la simulación 3D
   useEffect(() => {
@@ -455,6 +469,20 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({ onBackToLanding 
           </div>
         </div>
 
+        {/* Notificación de Paso Aplicado */}
+        {actionToast && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 max-w-lg bg-emerald-600/95 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl shadow-2xl shadow-emerald-950/80 border border-emerald-300/40 flex items-center gap-2.5 text-xs font-bold animate-pulse">
+            <CheckCircle2 className="w-4 h-4 text-emerald-200 shrink-0" />
+            <span className="flex-1">{actionToast}</span>
+            <button
+              onClick={() => setActionToast(null)}
+              className="text-emerald-200 hover:text-white font-mono text-xs px-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Botón flotante para abrir el panel izquierdo cuando está cerrado */}
         {!isLeftPanelOpen && (
           <button
@@ -540,44 +568,76 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({ onBackToLanding 
                 </div>
               )}
 
-              {/* Pasos Guiados */}
+              {/* Pasos Guiados con Botón de Acción Directa */}
               {labMode === 'guided' && activePractice.procedure.length > 0 && (
                 <div className="space-y-2">
-                  <span className="font-bold text-slate-200 uppercase tracking-wider text-[10px] block">
-                    Pasos de la Práctica (Haz clic para marcar)
-                  </span>
-                  <div className="space-y-2">
-                    {activePractice.procedure.map((step) => (
-                      <div
-                        key={step.stepNumber}
-                        onClick={() =>
-                          setCompletedSteps((prev) => ({
-                            ...prev,
-                            [step.stepNumber]: !prev[step.stepNumber],
-                          }))
-                        }
-                        className={`p-3 rounded-xl border cursor-pointer transition flex items-start gap-2.5 ${
-                          completedSteps[step.stepNumber]
-                            ? 'bg-emerald-950/30 border-emerald-600/50 text-slate-200'
-                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!completedSteps[step.stepNumber]}
-                          onChange={() => {}}
-                          className="mt-0.5 rounded text-sky-500 focus:ring-0 cursor-pointer"
-                        />
-                        <div className="flex-1">
-                          <span className="font-bold text-white block text-xs">
-                            Paso {step.stepNumber}: {step.title}
-                          </span>
-                          <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                            {step.instruction}
-                          </p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 uppercase tracking-wider text-[10px] block">
+                      Pasos de la Práctica (Haz clic para Probar)
+                    </span>
+                    <span className="text-[10px] text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/80">
+                      {Object.values(completedSteps).filter(Boolean).length} de {activePractice.procedure.length} hechos
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {activePractice.procedure.map((step) => {
+                      const isCompleted = !!completedSteps[step.stepNumber];
+                      return (
+                        <div
+                          key={step.stepNumber}
+                          className={`p-3 rounded-xl border transition flex flex-col gap-2.5 ${
+                            isCompleted
+                              ? 'bg-emerald-950/40 border-emerald-500/60 text-slate-100 shadow-md shadow-emerald-950/40'
+                              : 'bg-slate-900/90 border-slate-800 hover:border-sky-700/60 text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCompletedSteps((prev) => ({
+                                  ...prev,
+                                  [step.stepNumber]: !prev[step.stepNumber],
+                                }))
+                              }
+                              className="mt-0.5 text-slate-400 hover:text-white"
+                              title="Marcar como completado"
+                            >
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4 text-emerald-400 fill-emerald-500/20" />
+                              ) : (
+                                <div className="w-4 h-4 rounded border border-slate-600 bg-slate-800" />
+                              )}
+                            </button>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-extrabold text-white text-xs">
+                                  Paso {step.stepNumber}: {step.title}
+                                </span>
+                                {isCompleted && (
+                                  <span className="text-[9px] font-bold text-emerald-300 bg-emerald-950 border border-emerald-600 px-1.5 py-0.2 rounded-full">
+                                    ✓ Completado
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                                {step.instruction}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* BOTÓN DE ACCIÓN DIRECTA - 1 CLIC */}
+                          <button
+                            type="button"
+                            onClick={() => handleExecuteStep(step)}
+                            className="w-full py-2 px-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 active:scale-[0.98] text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-sky-950/50 transition hover:shadow-sky-800/40"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current text-sky-200" />
+                            <span>{step.actionLabel || `▶ Ejecutar Paso ${step.stepNumber}`}</span>
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -779,30 +839,108 @@ export const LaboratoryView: React.FC<LaboratoryViewProps> = ({ onBackToLanding 
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
+
+                    {/* Botones de ángulos directos */}
+                    <div className="grid grid-cols-4 gap-1 mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('incidentAngleDeg', 0)}
+                        className={`py-1 text-[10px] rounded font-bold border transition ${
+                          params.incidentAngleDeg === 0
+                            ? 'bg-sky-600 border-sky-400 text-white shadow-sm'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        0° Recto
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('incidentAngleDeg', 30)}
+                        className={`py-1 text-[10px] rounded font-bold border transition ${
+                          params.incidentAngleDeg === 30
+                            ? 'bg-sky-600 border-sky-400 text-white shadow-sm'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        30°
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('incidentAngleDeg', 56.7)}
+                        className={`py-1 text-[10px] rounded font-bold border transition ${
+                          Math.abs(params.incidentAngleDeg - 56.7) < 0.2
+                            ? 'bg-amber-600 border-amber-300 text-white shadow-sm'
+                            : 'bg-slate-900 border-slate-800 text-amber-400 hover:text-amber-300'
+                        }`}
+                        title="Ángulo de Brewster"
+                      >
+                        56.7° ✨
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('incidentAngleDeg', 80)}
+                        className={`py-1 text-[10px] rounded font-bold border transition ${
+                          params.incidentAngleDeg === 80
+                            ? 'bg-sky-600 border-sky-400 text-white shadow-sm'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        80° Rasante
+                      </button>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-slate-200 font-bold mb-1.5">Color del Láser</label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[
-                        { nm: 405, label: 'Violeta', bg: 'bg-purple-600' },
-                        { nm: 488, label: 'Cian', bg: 'bg-cyan-500' },
-                        { nm: 532, label: 'Verde', bg: 'bg-emerald-500' },
-                        { nm: 632.8, label: 'Rojo', bg: 'bg-red-500' },
-                      ].map((w) => (
-                        <button
-                          key={w.nm}
-                          onClick={() => handleParamChange('wavelengthNm', w.nm)}
-                          className={`py-1.5 text-[11px] rounded-lg border font-bold transition flex items-center justify-center gap-1 ${
-                            params.wavelengthNm === w.nm
-                              ? 'bg-sky-600 border-white text-white shadow-md'
-                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${w.bg}`}></span>
-                          {w.label}
-                        </button>
-                      ))}
+                    <label className="block text-slate-200 font-bold mb-1.5 text-xs">Color del Láser</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('wavelengthNm', 632.8)}
+                        className={`py-2 px-3 text-xs rounded-xl border font-bold transition flex items-center justify-center gap-2 ${
+                          params.wavelengthNm === 632.8
+                            ? 'bg-red-600 border-red-300 text-white shadow-lg shadow-red-950/80 ring-2 ring-red-400 scale-[1.02]'
+                            : 'bg-red-950/40 border-red-900/60 text-red-200 hover:bg-red-900/50'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse"></span>
+                        🔴 Rojo (633 nm)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('wavelengthNm', 532)}
+                        className={`py-2 px-3 text-xs rounded-xl border font-bold transition flex items-center justify-center gap-2 ${
+                          params.wavelengthNm === 532
+                            ? 'bg-emerald-600 border-emerald-300 text-white shadow-lg shadow-emerald-950/80 ring-2 ring-emerald-400 scale-[1.02]'
+                            : 'bg-emerald-950/40 border-emerald-900/60 text-emerald-200 hover:bg-emerald-900/50'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        🟢 Verde (532 nm)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('wavelengthNm', 488)}
+                        className={`py-2 px-3 text-xs rounded-xl border font-bold transition flex items-center justify-center gap-2 ${
+                          params.wavelengthNm === 488
+                            ? 'bg-cyan-600 border-cyan-300 text-white shadow-lg shadow-cyan-950/80 ring-2 ring-cyan-400 scale-[1.02]'
+                            : 'bg-cyan-950/40 border-cyan-900/60 text-cyan-200 hover:bg-cyan-900/50'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        🔵 Cian (488 nm)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleParamChange('wavelengthNm', 405)}
+                        className={`py-2 px-3 text-xs rounded-xl border font-bold transition flex items-center justify-center gap-2 ${
+                          params.wavelengthNm === 405
+                            ? 'bg-purple-600 border-purple-300 text-white shadow-lg shadow-purple-950/80 ring-2 ring-purple-400 scale-[1.02]'
+                            : 'bg-purple-950/40 border-purple-900/60 text-purple-200 hover:bg-purple-900/50'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                        🟣 Violeta (405 nm)
+                      </button>
                     </div>
                   </div>
 
